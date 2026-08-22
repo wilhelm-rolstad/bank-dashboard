@@ -1,0 +1,7 @@
+*.pem
+.env
+session.json
+backend/venv/
+frontend/node_modules/
+__pycache__/
+*.pyc
