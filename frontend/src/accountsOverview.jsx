@@ -236,7 +236,8 @@ const visible = (transactions ?? []).filter(
             ))}
           </div>
 
-          <div className="flex-1 flex flex-col gap-0 bg-white items-start p-2 overflow-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.08)_transparent] text-left">
+          <div className="flex-1 relative min-h-0">
+            <div className="h-full flex flex-col gap-0 bg-white items-start p-2 overflow-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.08)_transparent] text-left">
             {visible.map((transaction, i) => (
               <TransactionEL
                 key={`${selectedUid ?? "all"}-${transaction.id}`}
@@ -251,6 +252,7 @@ const visible = (transactions ?? []).filter(
               />
               
             ))}
+            </div>
             {transactions ? <AiExpenseEl transactions={transactions}/> : <p>loading...</p>}
           </div>
         </div>

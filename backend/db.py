@@ -241,7 +241,18 @@ def openaiExpenseQuery(problem, transactions):
             Answer based on the transactions above. By id(important!); list all transactions relevant to solve the problem.
             For example problem "how much did i spend on bunnpris last month?" 
             then respond with all transactions from the last month that are from bunnpris.
-            For each transaction list as following: [id, description, amount(in kroner, stored in øre, 1kr is 100øre), date, why this is considered correct]
+            To include a transaction you must be 100% sure. If the question is a specific company the company name must be found in the description of the expense.
+            For example: how much did i spend on bunnpris last month? - then bunnpris must exists within the description.
+            If a question is more open like: "how much did i spend on nightlife activities" - then you must reason and try to find a connection to nightlife activities. 
+            For example purchases at a bar or an establishment that does nightlife, or if you are unsure check if there are other nightlife activities on the same data, 
+            that increases the chance of this one also being nightlife.
+            Answer must be in this exact format:
+
+            Relevant transactions: *[id, id, id, ....]
+
+            *Explanation of the above. Maximum 4 sentences.
+
+            *Total amount: *total amount
             """
     response = client.chat.completions.create(
         model="gpt-4o-mini",
