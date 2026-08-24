@@ -1,5 +1,6 @@
 import os
 import psycopg
+from openai import OpenAI
 from pathlib import Path
 from psycopg.rows import dict_row
 from dotenv import load_dotenv
@@ -231,3 +232,20 @@ def getWeeklyExpenses():
         by_week[week][r["category"]] = float(r["total"])
 
     return list(by_week.values())
+
+client = OpenAI(api_key=os.getenv("CHAT_GPT_API_KEY"))
+
+def openaiExpenseQuery(problem, transactions):
+    prompt = f"""Here are the user's transactions: {transactions} 
+            Question: {problem}
+            Answer based on the transactions above. By id(important!); list all transactions relevant to solve the problem.
+            For example problem "how much did i spend on bunnpris last month?" 
+            then respond with all transactions from the last month that are from bunnpris.
+            For each transaction list as following: [id, description, amount(in kroner, stored in øre, 1kr is 100øre), date, why this is considered correct]
+            """
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role" : "user", "content": prompt}]
+    )
+
+    return {"answer": response.choices[0].message.content}

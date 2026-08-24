@@ -3,6 +3,7 @@ import BankAccountEl from "./elements/BankAccountEl";
 import TransactionEL from "./elements/TransactionEl";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, CartesianGrid, XAxis, YAxis, Line} from "recharts";
 import CategoryExpenseListEl from "./elements/CategoryExpenseListEl";
+import AiExpenseEl from "./elements/AiExpenseEl"
 
 const API = "http://localhost:8000";
 
@@ -248,7 +249,9 @@ const visible = (transactions ?? []).filter(
                 account_name={transaction.account_name}
                 category={transaction.category}
               />
+              
             ))}
+            {transactions ? <AiExpenseEl transactions={transactions}/> : <p>loading...</p>}
           </div>
         </div>
       </div>

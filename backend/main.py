@@ -271,3 +271,7 @@ def getAccounts():
 def getWeeklyExpenses():
     return db.getWeeklyExpenses()
 
+@app.post("/aiexpensequery")
+async def aiexpensequery(request: Request):
+    data = await request.json()
+    return db.openaiExpenseQuery(data["problem"], data["transactions"])
