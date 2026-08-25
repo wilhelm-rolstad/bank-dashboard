@@ -28,10 +28,9 @@ What the dashboard provides that my bank does not:
   try to categorize it, but may also still end up in "other" in the case of it actually not fitting inside a category.
 - Lets me know specifically how much i spend on each category for each week and gives clear analytics trough charts.
   
-- Lets me use AI to search for spexific questions about expenses for example "how much did i spend on my spain trip from 01.06 to 15.06" (Still under development).
+- Uses AI search for specific questions about expenses for example "how much did i spend on my spain trip from 01.06 to 15.06" (Still under development).
 
-- There are also other features to come, such as just simple filtering in the analytics between weeks, moths, year, and all time.
-
+- More features planned: simple filtering in transactions and in analytics between weeks, months, years, and all time. 
   Furthermore i have also planned to have a page where you can set the budget and then compare to actual spendings.
   Stocks and funds are also planned for this, but will not go as smoothly because my broker does not have a public API.
 
