@@ -9,6 +9,7 @@ import re
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+client = OpenAI(api_key=os.getenv("CHAT_GPT_API_KEY"))
 
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL not set in .env")
@@ -42,7 +43,7 @@ def categorizeTransaction(remittance_information):
         "elektronikk" : ["eplehuset", "elkjøp", "komplett", "power"],
         "sosialt" : ["vinmonopolet", "bar", "pub", "kino", "scotsman", "downtown", "friends solsiden", "foyn", "fotballfesten", "ivy", "coya", "heidis", "to glass", "s4", "as palace grill"],
         "transport" : ["uber", "ryde", "bolt", "django", "ruter", "atb", "easypark", "st1", "circle k", "ferge", "vy", "blue energy as", "p-hus", "p hus", "parkering"],
-        "overføring" : ["straksbetaling", "vipps", "overføring", "til", "fra", "overført"],
+        "overføring" : ["straksbetaling", "overføring", "til", "fra", "overført"],
         "klær" : ["volt", "dressmann", "massimo", "john henric", "bogart", "morris", "eurosko", "follestad", "el corte ingles"],
         "reise" : ["norwegian", "sas", "flytoget"]
     }
@@ -50,15 +51,37 @@ def categorizeTransaction(remittance_information):
 
     d = " ".join(remittance_information or []).lower()
 
+    # Steg 1: prøv regel-basert først
     for category, keywords in CATEGORIES.items():
         for k in keywords:
             if re.search(rf"\b{re.escape(k)}\b", d):
                 return category
-    return "other"
 
+    # Steg 2: ingen match — fall tilbake på LLM
+    prompt = f"""Categorize the following transaction into ONE of these categories:
+            - dagligvarer: matvarebutikker, supermarkeder, kiosker
+            - takeaway: restauranter, fast food, hjemlevering av mat
+            - abbonement: streaming-tjenester, apper, forsikringer, faste månedlige avgifter, kredittkortfaktura(efakura fra bank) skal ikke gå under abonnement, men other.
+            - trening: treningssentre, sportsutstyr, sportsklær
+            - sparing: overføringer til investerings- eller sparekontoer
+            - elektronikk: databutikker, elektronikkjeder, apper for tech
+            - sosialt: barer, puber, restauranter for utekvelder, kino, arrangementer, festivaler
+            - transport: kollektivtrafikk, taxi, drivstoff, parkering, sykkel/elsparkesykkel-utleie
+            - overføring: person-til-person-overføringer, Vipps, mellom egne kontoer
+            - klær: klesbutikker (ikke sports)
+            - reise: fly, tog til/fra flyplass, hotell, langdistansereiser
+            - other: alt som ikke passer
 
+            Transaction description: {d}
 
-       
+            Respond with ONLY the category name, in lowercase, nothing else.
+            """
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    print("for description ", {d}, "i chose the category: ", {response.choices[0].message.content.strip().lower()})
+    return response.choices[0].message.content.strip().lower()
 
 def sync_account(account, transactions, balances=None):
     balances = balances or []
@@ -104,16 +127,44 @@ def sync_account(account, transactions, balances=None):
         )
         account_id = cur.fetchone()["id"]
 
+        # --- NYTT: hent eksisterende transaksjoner for denne kontoen ---
+        cur.execute(
+            "SELECT entry_reference FROM transactions WHERE account_id = %s",
+            (account_id,)
+        )
+        existing_refs = {row["entry_reference"] for row in cur.fetchall()}
+        
+        # --- NYTT: cache for LLM-svar innen denne synken ---
+        category_cache = {}
+        # -----------------------------------------------------------------
+
         rows = []
-        for t in transactions: #For every transaction 
-            amt = t.get("transaction_amount") or {} #get the amount
-            direction = t.get("credit_debit_indicator") # positive or negative amount
-            ore = round(float(amt.get("amount") or 0) * 100) # make it in øre *always stored in øre/cents because floats may break in math
+        for t in transactions:
+            entry_ref = t.get("entry_reference")
+            
+            # --- NYTT: hopp over hvis den allerede finnes ---
+            if entry_ref in existing_refs:
+                continue
+            # ------------------------------------------------
+            
+            amt = t.get("transaction_amount") or {}
+            direction = t.get("credit_debit_indicator")
+            ore = round(float(amt.get("amount") or 0) * 100)
             if direction == "DBIT":
                 ore = -ore
+            
+            # --- NYTT: bruk cache før du kaller categorizeTransaction ---
+            desc_key = " ".join(t.get("remittance_information") or []).lower().strip()
+            if desc_key in category_cache:
+                category = category_cache[desc_key]
+            else:
+                category = categorizeTransaction(t.get("remittance_information"))
+                category_cache[desc_key] = category
+            # ------------------------------------------------------------
+            
             rows.append({
                 "account_id": account_id,
-                "entry_reference": t.get("entry_reference"),
+                "entry_reference": entry_ref,
                 "amount": ore,
                 "currency": amt.get("currency"),
                 "direction": direction,
@@ -121,7 +172,7 @@ def sync_account(account, transactions, balances=None):
                 "booking_date": t.get("booking_date"),
                 "value_date": t.get("value_date"),
                 "description": " ".join(t.get("remittance_information") or []),
-                "category" : categorizeTransaction(t.get("remittance_information"))
+                "category": category   # bruker cached/nytt resultat
             })
 
         if rows:
@@ -233,7 +284,7 @@ def getWeeklyExpenses():
 
     return list(by_week.values())
 
-client = OpenAI(api_key=os.getenv("CHAT_GPT_API_KEY"))
+
 
 def openaiExpenseQuery(problem, transactions):
     prompt = f"""Here are the user's transactions: {transactions} 
