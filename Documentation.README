@@ -1,1 +1,27 @@
-Documentation
+Bank-Dashboard
+Since my personal bank Storebrand is missing an analytics platform for transactions, 
+and transactions are extremely hard to find back to in my banks webplatform or app;
+I decided to create my own.
+
+After research i found a business that has an API that lets you either use a dummy account 
+during development or even your own data by authenticating trough BANKID OIDC.
+
+From here i can fetch all my accounts data in real time, and also fetch all transactions 
+that has been booked within the last 50 days.
+To store transactions for longer i store all new transactions to a database.
+
+This application is now a dashboard for analytics of my own spendings and incomes.
+What the dashboard gives me insights on that my bank does not:
+- Categorization of transactions: The application uses a ruleset (keywords) to initially categorize a transaction 
+  into a specific category. For example "Bunnpris" is "dagligvare" and "Downtown" is "sosialt". 
+  If a transactions does not fit inside a category it will then be sent in a prompt to an OPENAI API that will 
+  try to categorize it, but may also still end up in "other" in the case of it actually not fitting inside a category.
+- Lets me know specifically how much i spend on each category for each week and gives clear analytics trough charts.
+- Lets me use AI to search for spexific questions about expenses for example "how much did i spend on my spain trip from 01.06 to 15.06"
+  (Still under development).
+- There are also other features to come, such as just simple filtering in the analytics between weeks, moths, year, and all time.
+  Furthermore i have also planned to have a page where you can set the budget and then compare to actual spendings.
+  Stocks and funds are also planned for this, but will not go as smoothly because my broker does not have a public API.
+
+
+
