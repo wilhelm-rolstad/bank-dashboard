@@ -20,13 +20,17 @@ export default function Layout() {
           Verdipapirer
         </NavLink>
 
+        <NavLink to="/budget" className={({isActive}) =>
+          `px-3 py-2 rounded-md ${isActive ? "bg-gray-200" : "hover:bg-gray-100"}`
+        }>
+          Budget
+        </NavLink>
+
         <NavLink to="/settings" className={({isActive}) =>
           `px-3 py-2 rounded-md mt-auto ${isActive ? "bg-gray-200" : "hover:bg-gray-100"}`
         }>
           Settings
         </NavLink>
-
-        
 
       </nav>
 
