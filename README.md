@@ -1,41 +1,63 @@
-# Bank-Dashboard
+# Bank Dashboard
 
-## Background for this project
+A PSD2-integrated dashboard application that fetches account and 
+transaction data directly from Norwegian banks via BankID, with 
+AI-powered categorization and interactive visualizations.
 
-Since my personal bank Storebrand is missing an analytics platform for transactions, and transactions are extremely hard to find back to in my banks webplatform or app; **I decided to create my own.**
+![Dashboard screenshot](./image.png)
 
-### Implementation
+## Why I Built This
 
-After research if found out that all banks in EU must comply to PSD2 by having APIs that authorized companies can use to fetch customer transaction data.
+My personal bank (Storebrand) lacks a proper analytics platform for 
+transactions, and historical data disappears after 90 days in the 
+bank's own systems. I built this app to own my financial data and 
+gain better insight into my own spending patterns.
 
-``
-"PSD2 (Revised Payment Services Directive) is an EU directive for payment services that was introduced in Norway on 14 September 2019. Its aim is to increase security in online commerce, strengthen consumer rights, and open up for more competition and innovation by requiring banks to share account information with authorised third parties if the customer permits it." - Finans Norge
-``
+## Features
 
-To qualify for these API's you must have an AS and also send a formal application to Finanstilsynet stating the company roles and how you comply to GDPR trough gathering, processing, storing, etc..., even if you only want to gather your very on data.
-Therefore i found a business that is qualified and that lets you fetch your own data trough BankID OIDC.
+- **BankID authentication** via Enable Banking (OIDC)
+- **Real-time data** from Norwegian banks through the PSD2 open 
+  banking API
+- **Extended history** — stores all transactions in a dedicated 
+  PostgreSQL database beyond the bank's 90-day window
+- **Hybrid categorization** — rule-based (keyword matching) with 
+  AI fallback (OpenAI) for transactions that don't match predefined 
+  categories
+- **Interactive visualizations** — pie charts, line charts, and 
+  tables showing spending over time
+- **AI-powered search** — ask questions like "how much did I spend 
+  on my Spain trip in June?" and get answers based on your own data
 
-From here i can fetch all my account-data in real time, and also fetch all transactions that has been booked within the last 50 days. To store transactions for longer i store all new transactions to Postgres database in Supabase.
+## Tech Stack
 
-### The application today
+**Backend:** Python, FastAPI, PostgreSQL (Supabase)  
+**Frontend:** React, TypeScript  
+**Desktop:** Tauri (Rust)  
+**Integrations:** Enable Banking API (OIDC), OpenAI API  
 
-This application is now a dashboard for analytics of my own spendings and incomes.
-What the dashboard provides that my bank does not:
+## About PSD2
 
-- Categorization of transactions: The application uses a ruleset (keywords) to initially categorize a transaction  into a specific category. For example "Bunnpris" is "dagligvare" and "Downtown" is "sosialt".
-- 
-  If a transactions does not fit inside a category it will then be sent in a prompt to an OPENAI API that will 
-  try to categorize it, but may also still end up in "other" in the case of it actually not fitting inside a category.
-- Lets me know specifically how much i spend on each category for each week and gives clear analytics trough charts.
-  
-- Uses AI search for specific questions about expenses for example "how much did i spend on my spain trip from 01.06 to 15.06" (Still under development).
+PSD2 (Revised Payment Services Directive) is an EU directive from 2019 
+that requires banks to expose customer transaction data through open 
+APIs, provided the customer consents. Using these APIs directly requires 
+formal approval from Finanstilsynet (the Norwegian Financial Supervisory 
+Authority). This application therefore uses Enable Banking as an 
+intermediary — an approved provider that handles secure BankID 
+authentication and standardized access to Norwegian banks.
 
-- More features planned: simple filtering in transactions and in analytics between weeks, months, years, and all time. 
-  Furthermore i have also planned to have a page where you can set the budget and then compare to actual spendings.
-  Stocks and funds are also planned for this, but will not go as smoothly because my broker does not have a public API.
+## Status
 
-<img src="image.png" alt="dashboard-image" width="800">
+Under active development. Currently functions as a personal dashboard 
+for my own account information.
 
-#### Want to try it out?
+**Planned:**
+- [ ] Budget view with comparison against actual spending
+- [ ] Weekly/monthly/yearly filtering
+- [ ] Stocks and funds (pending broker API availability)
+- [ ] Multi-bank support
 
-```coming soon...```
+## Note
+
+This is a personal project built for my own account information. It is 
+not intended for production use by others, and requires individual 
+BankID access and Enable Banking configuration to run.
