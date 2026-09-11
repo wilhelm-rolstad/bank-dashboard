@@ -16,10 +16,13 @@ from concurrent.futures import ThreadPoolExecutor
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 APP_ID = os.getenv("ENABLEBANKING_APP_ID")
-KEY_PATH = Path(__file__).parent.parent / os.getenv("ENABLEBANKING_KEY_PATH").lstrip("./")
+KEY_PATH = Path(__file__).parent.parent / os.getenv("ENABLEBANKING_KEY_PATH").lstrip(
+    "./"
+)
 BASE_URL = "https://api.enablebanking.com"
 REDIRECT_URI = "https://wilhelmrolstad.no/callback"
 SESSION_FILE = Path(__file__).parent / "session.json"
+
 
 def load_session():
     if SESSION_FILE.exists():
@@ -29,8 +32,10 @@ def load_session():
             return {}
     return {}
 
+
 def save_session(data):
     SESSION_FILE.write_text(json.dumps(data, indent=2))
+
 
 if not APP_ID:
     raise RuntimeError("ENABLEBANKING_APP_ID not set in .env")
@@ -40,8 +45,8 @@ if not KEY_PATH.exists():
 PRIVATE_KEY = KEY_PATH.read_text()
 
 # In-memory storage. Fine for dev; you'd use a real DB for production.
-SESSIONS = {}   # session_id -> session data (accounts, etc.)
-LATEST = load_session()     # simple {"session_id": ..., "accounts": [...]}
+SESSIONS = {}  # session_id -> session data (accounts, etc.)
+LATEST = load_session()  # simple {"session_id": ..., "accounts": [...]}
 
 app = FastAPI()
 app.add_middleware(
@@ -72,6 +77,7 @@ def make_jwt() -> str:
 
 def auth_header():
     return {"Authorization": f"Bearer {make_jwt()}"}
+
 
 def fetch_all_transactions(account_uid, days=90, status=None):
     date_from = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -119,7 +125,9 @@ def list_aspsps():
 @app.post("/start-auth")
 def start_auth(aspsp_name: str = "Mock ASPSP", country: str = "NO"):
     """Start an auth session with a bank. Returns a URL for the user to visit."""
-    valid_until = (datetime.now(timezone.utc) + timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%S.000000+00:00")
+    valid_until = (datetime.now(timezone.utc) + timedelta(days=90)).strftime(
+        "%Y-%m-%dT%H:%M:%S.000000+00:00"
+    )
     body = {
         "access": {"valid_until": valid_until},
         "aspsp": {"name": aspsp_name, "country": country},
@@ -142,9 +150,13 @@ def callback(code: str = None, state: str = None, error: str = None):
     if not code:
         return HTMLResponse("<h1>Missing code</h1>", status_code=400)
 
-    resp = requests.post(f"{BASE_URL}/sessions", json={"code": code}, headers=auth_header())
+    resp = requests.post(
+        f"{BASE_URL}/sessions", json={"code": code}, headers=auth_header()
+    )
     if resp.status_code != 200:
-        return HTMLResponse(f"<h1>Session failed</h1><pre>{resp.text}</pre>", status_code=400)
+        return HTMLResponse(
+            f"<h1>Session failed</h1><pre>{resp.text}</pre>", status_code=400
+        )
 
     session = resp.json()
     session_id = session.get("session_id")
@@ -170,6 +182,7 @@ def callback(code: str = None, state: str = None, error: str = None):
 def get_transactions(account_uid: str, days: int = 90):
     return {"transactions": fetch_all_transactions(account_uid, days)}
 
+
 @app.get("/accounts")
 def get_accounts():
     accounts = LATEST.get("accounts")
@@ -191,6 +204,7 @@ def get_accounts():
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         return list(pool.map(fetch_one, accounts))
+
 
 @app.get("/balances")
 def get_all_balances():
@@ -220,31 +234,41 @@ def get_all_balances():
 
     return results
 
+
 @app.post("/sync")
 def sync():
     accounts = LATEST.get("accounts")
     if not accounts:
         raise HTTPException(status_code=404, detail="No session. Start auth first.")
-
     summary = []
-    for a in accounts:
-        txs = fetch_all_transactions(a["uid"])
+    last_sync = LATEST.get("last_sync", 0)
+    if time.time() - last_sync > 2 * 60 * 60:
+        for (
+            a
+        ) in accounts:  # For alle kontoer, henter alle transaksjoner fra hver av dem.
+            txs = fetch_all_transactions(a["uid"])
 
-        bresp = requests.get(
-            f"{BASE_URL}/accounts/{a['uid']}/balances",
-            headers=auth_header(),
-            timeout=15,
-        )
-        balances = bresp.json().get("balances", []) if bresp.ok else []
+            bresp = requests.get(
+                f"{BASE_URL}/accounts/{a['uid']}/balances",
+                headers=auth_header(),
+                timeout=15,
+            )
+            balances = bresp.json().get("balances", []) if bresp.ok else []
 
-        _, n = db.sync_account(a, txs, balances)
-        summary.append({"product": a.get("product"), "fetched": n})
-    return summary
+            _, n = db.sync_account(a, txs, balances)
+            summary.append({"product": a.get("product"), "fetched": n})
+        LATEST["last_sync"] = time.time()
+        save_session(LATEST)
+        return summary
+    else:
+        return []
+
 
 @app.post("/account-label")
 def set_account_label(uid: str, label: str):
     db.setLabel(uid, label)
     return {"ok": True}
+
 
 @app.post("/recategorize")
 def recategorizeAllTransactions():
@@ -255,21 +279,21 @@ def recategorizeAllTransactions():
 def getStats():
     return db.getExpenseCategoryPercentages()
 
+
 @app.get("/transactionsLastMonth")
-def getTransactionsLastMonth():
+def getTransactionsLastMont():
     return db.getTransactionsLastMonth()
 
-@app.get("/transactionsLastYear")
-def getTransactionsLastMonth():
-    return db.getTransactionsLastYear()
 
 @app.get("/getAccounts")
 def getAccounts():
     return db.getAccounts()
 
-@app.get("/weeklyExpensesPerCategory")
-def getWeeklyExpenses():
-    return db.getWeeklyExpenses()
+
+@app.get("/getMonthlyExpensesPerCategory")
+def getMonthlyExpenses():
+    return db.getMonthlyExpenses()
+
 
 @app.post("/aiexpensequery")
 async def aiexpensequery(request: Request):

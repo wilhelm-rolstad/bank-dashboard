@@ -15,8 +15,8 @@ export default function loginPage(){
 
     return(
         <>
-            <section className="w-full flex justify-center items-center h-screen">
-                <div className="border rounded-lg p-5 flex flex-col gap-2 items-center">
+            <section className="w-full flex justify-center items-center h-full bg-[url('./assets/login_bg.jpg')] bg-cover bg-center ">
+                <div className="border border-gray-300 rounded-lg p-5 flex flex-col gap-2 items-center bg-white/5 shadow-md backdrop-blur-xs text-white">
                     <h1>Welcom back Wilhelm</h1>
                     <p>Please enter your pin</p>
                         <input type="password" className="border rounded" onChange={(e) => handleClick(e.target.value)}></input>

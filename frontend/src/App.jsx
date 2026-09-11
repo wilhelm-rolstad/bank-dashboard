@@ -4,19 +4,22 @@ import LoginPage from "./loginPage.jsx"
 import Verdipapirer from "./Verdipapirer.jsx"
 import Layout from "./layout.tsx"
 import BudgetPage from "./budgetPage.jsx"
+import TopBar from "./elements/TopBar.tsx";
 
 export default function App() {
-    return (
-        <>
-            <Routes>
-                <Route path="/" element={<LoginPage />} />
-                <Route element={<Layout />}>
-                    <Route path="/accounts" element={<AccountOverview />} />
-                    <Route path="/verdipapirer" element={<Verdipapirer />} />
-                    <Route path="/budget" element={<BudgetPage />} />
-                </Route>
-            </Routes>
-        </>
-    )
+  return (
+    <div className="flex flex-col h-full overflow-hidden rounded-2xl bg-white">
+      <TopBar />
+      <div className="flex-1 min-h-0">
+        <Routes>
+          <Route path="/" element={<LoginPage />} />
+          <Route element={<Layout />}>
+            <Route path="/accounts" element={<AccountOverview />} />
+            <Route path="/verdipapirer" element={<Verdipapirer />} />
+            <Route path="/budget" element={<BudgetPage />} />
+          </Route>
+        </Routes>
+      </div>
+    </div>
+  );
 }
-

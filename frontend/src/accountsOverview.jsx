@@ -13,12 +13,12 @@ export default function accountsOverview() {
   const [error, setError] = useState(null);
   const [code, setCode] = useState("");
   const [accounts, setAccounts] = useState([]); //must be sat back to null
-  const [initializing, setInitializing] = useState(false); //must be sat back to true
+  const [initializing, setInitializing] = useState(true); //must be sat back to true
   const [transactions, setTransactions] = useState(null);
   const [selectedUid, setSelectedUid] = useState(null);
   const [stats, setStats] = useState(null);
   const categories = ["dagligvarer", "takeaway", "transport", "trening", "sosialt", "klær", "reise", "elektronikk", "abbonement"];
-  const [weeklyExpensesInCategories, setWeeklyExpensesInCategories] = useState(null)
+  const [monthlyExpensesInCategories, setMonthlyExpensesInCategories] = useState(null)
   const COLORSPIE = ["#4a7c8c", "#8c5a4a", "#6b8f5a", "#8c7a4a", "#6b5a8c", "#4a8c7c", "#8c4a6b", "#5a6b8c"];
   const COLORSLINE = ["#38bdf8", "#fb923c", "#4ade80", "#facc15", "#a78bfa", "#2dd4bf", "#f472b6", "#60a5fa", "#f87171", "#a3e635"];
   const chartData = (stats ?? [])
@@ -63,16 +63,16 @@ useEffect(() => {
         fetch(`${API}/getAccounts`).then((r) => (r.ok ? r.json() : null)),
         fetch(`${API}/transactionsLastMonth`).then((r) => (r.ok ? r.json() : null)),
         fetch(`${API}/getExpenseStats`).then((r) => (r.ok ? r.json() : null)),
-        fetch(`${API}/weeklyExpensesPerCategory`).then((r) => (r.ok ? r.json():null))
+        fetch(`${API}/getMonthlyExpensesPerCategory`).then((r) => (r.ok ? r.json():null))
       ])
-        .then(([accountsData, transactionData, statsData, weeklyExpenseData]) => {
+        .then(([accountsData, transactionData, statsData, monthlyExpenseData]) => {
           if (accountsData) {
             setAccounts(accountsData);
             console.log("accountsData:", accountsData);
           }
           if (transactionData) setTransactions(transactionData);
           if (statsData) setStats(statsData);
-          if (weeklyExpenseData) setWeeklyExpensesInCategories(weeklyExpenseData)
+          if (monthlyExpenseData) setMonthlyExpensesInCategories(monthlyExpenseData)
         })
         .catch(() => {})
         .finally(() => setInitializing(false));
@@ -93,38 +93,36 @@ const visible = (transactions ?? []).filter(
 );
 
   return (
-  <div className="mx-auto w-full h-screen flex flex-col p-2">
+  <div className="mx-auto w-full h-screen flex flex-col p-2 font-jetbrains font-normal">
 
-    <h1 className="text-md">Kontooversikt og transaksjoner</h1>
 
     {error && <p style={{ color: "crimson" }}>{error}</p>}
 
-    {initializing ? (
-      <p className="text-gray-500">Loading accounts…</p>
-    ) : accounts ? (
       <div className="flex flex-col flex-1 min-h-0 gap-2 p-2">
-
         
         <div className="shrink-0">
+          <h1 className="text-2xl">Kontooversikt og transaksjoner</h1>
           
-          <div className="flex w-full flex-row gap-2 bg-white rounded-md my-5 px-2 py-2 text-sm items-center ">
-              <p>Total Liquid: </p>
+          <div className={`flex w-full flex-row gap-2 rounded-md my-5 px-2 py-2 text-sm items-center ${initializing ? "bg-gray-200 animate-pulse *:invisible" : "bg-white "} `}>
+              <p className="rounded-lg bg-gray-100 border border-gray-200 px-3 py-1  [corner-shape:squircle]">Total kjøpekraft: </p>
               <p>{totalLiquid}</p>
-              <button className="cursor-pointer border rounded-lg px-2 py-1 hover:scale-105 text-sm transition duration-200" onClick={() => recategorizeAllTransactions()}>recategorize</button>
+              <p className="rounded-lg bg-gray-100 border border-gray-200 px-3 py-1  [corner-shape:squircle]">Differanse lån og kjøpekraft: </p>
+              <p>...</p>
+              {/*<button className="cursor-pointer border rounded-lg px-2 py-1 hover:scale-105 text-sm transition duration-200" onClick={() => recategorizeAllTransactions()}>recategorize</button>*/}
               <section className="flex gap-1 ml-auto">
-                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">Month</p>
-                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">3 Months</p>
-                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">Year</p>
-                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">All</p>
+                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">Måned</p>
+                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">3 Måneder</p>
+                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">År</p>
+                <p className="px-2 py-1 border border-gray-200 rounded bg-gray-100 text-xs cursor-pointer hover:scale-105 transition duration-300">Alt</p>
               </section>
           </div>
 
-          <div className="w-full flex gap-2 items-center justify-center h-[26vh]">
+          <div className={`w-full flex gap-2 items-center justify-center h-[26vh] rounded-lg ${initializing ? "*:invisible animate-pulse bg-gray-200" : ""}`}>
 
             <section className="flex items-center justify-center h-full w-5/10">
                 <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weeklyExpensesInCategories ?? []}>
-                  <XAxis dataKey="week" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                <LineChart data={monthlyExpensesInCategories ?? []}>
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={35} />
                  <Tooltip
                   formatter={(v) => `${Number(v).toLocaleString("nb-NO")} kr`}
@@ -217,9 +215,9 @@ const visible = (transactions ?? []).filter(
         </div>
 
         
-        <div className="flex gap-2 w-full flex-1 min-h-0">
+        <div className={`flex gap-2 w-full flex-1 min-h-0`}>
 
-          <div className="flex flex-col gap-2 w-[20%] pl-3 pr-8 py-3  overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className={`flex flex-col gap-2 w-[20%] pl-3 pr-8 py-3  overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${initializing ? " *:invisible animate-pulse bg-gray-200 rounded-lg" : ""}`}>
             {accounts.map((account) => (
               <BankAccountEl
                 key={account.id}
@@ -236,7 +234,7 @@ const visible = (transactions ?? []).filter(
             ))}
           </div>
 
-          <div className="flex-1 flex flex-col gap-0 bg-white items-start p-2 overflow-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.08)_transparent] text-left">
+          <div className={`flex-1 flex flex-col gap-0 items-start p-2 overflow-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.08)_transparent] text-left ${initializing ? " *:invisible animate-pulse bg-gray-200 rounded-lg" : ""}`}>
             {visible.map((transaction, i) => (
               <TransactionEL
                 key={`${selectedUid ?? "all"}-${transaction.id}`}
@@ -260,7 +258,7 @@ const visible = (transactions ?? []).filter(
       <>
         ...
       </>
-    )}
+    )
   </div>
 );
 }

@@ -19,34 +19,131 @@ def connect():
     conn.prepare_threshold = None
     return conn
 
+
 def setLabel(uid, label):
     with connect() as conn, conn.cursor() as cur:
         cur.execute(
             """
             UPDATE accounts SET label = %(label)s WHERE accounts.uid = %(uid)s ;
             """,
-            {
-                "label" : label,
-                "uid": uid
-            }
+            {"label": label, "uid": uid},
         )
 
 
 def categorizeTransaction(remittance_information):
     CATEGORIES = {
-        "dagligvarer" : ["kiwi", "meny", "coop", "rema", "spar", "bunnpris", "extra", "narvesen", "coca cola", "unison", "joker", "normal", "zettle_*online", "super market", "lidl", "supermercado", "kiosk"],
-        "takeaway" : ["mcdonalds", "burger king", "BK", "burger", "kebab", "foodora", "wolt", "uber eats", "sushi", "subway", "dominos", "pizza", "sabrura", "bit", "restaurante", "grill"],
-        "abbonement" : ["netflix", "spotify", "openai", "anthropic", "storebrand forsikring"],
-        "trening" : ["3t", "sats", "impulse", "feel24", "kaliber", "fresh", "evo", "anton sport", "gym shark"],
-        "sparing" : ["nordnet"],
-        "elektronikk" : ["eplehuset", "elkjøp", "komplett", "power"],
-        "sosialt" : ["vinmonopolet", "bar", "pub", "kino", "scotsman", "downtown", "friends solsiden", "foyn", "fotballfesten", "ivy", "coya", "heidis", "to glass", "s4", "as palace grill"],
-        "transport" : ["uber", "ryde", "bolt", "django", "ruter", "atb", "easypark", "st1", "circle k", "ferge", "vy", "blue energy as", "p-hus", "p hus", "parkering"],
-        "overføring" : ["straksbetaling", "vipps", "overføring", "til", "fra", "overført"],
-        "klær" : ["volt", "dressmann", "massimo", "john henric", "bogart", "morris", "eurosko", "follestad", "el corte ingles"],
-        "reise" : ["norwegian", "sas", "flytoget"]
+        "dagligvarer": [
+            "kiwi",
+            "meny",
+            "coop",
+            "rema",
+            "spar",
+            "bunnpris",
+            "extra",
+            "narvesen",
+            "coca cola",
+            "unison",
+            "joker",
+            "normal",
+            "zettle_*online",
+            "super market",
+            "lidl",
+            "supermercado",
+            "kiosk",
+        ],
+        "takeaway": [
+            "mcdonalds",
+            "burger king",
+            "BK",
+            "burger",
+            "kebab",
+            "foodora",
+            "wolt",
+            "uber eats",
+            "sushi",
+            "subway",
+            "dominos",
+            "pizza",
+            "sabrura",
+            "bit",
+            "restaurante",
+            "grill",
+        ],
+        "abbonement": [
+            "netflix",
+            "spotify",
+            "openai",
+            "anthropic",
+            "storebrand forsikring",
+        ],
+        "trening": [
+            "3t",
+            "sats",
+            "impulse",
+            "feel24",
+            "kaliber",
+            "fresh",
+            "evo",
+            "anton sport",
+            "gym shark",
+        ],
+        "sparing": ["nordnet"],
+        "elektronikk": ["eplehuset", "elkjøp", "komplett", "power"],
+        "sosialt": [
+            "vinmonopolet",
+            "bar",
+            "pub",
+            "kino",
+            "scotsman",
+            "downtown",
+            "friends solsiden",
+            "foyn",
+            "fotballfesten",
+            "ivy",
+            "coya",
+            "heidis",
+            "to glass",
+            "s4",
+            "as palace grill",
+        ],
+        "transport": [
+            "uber",
+            "ryde",
+            "bolt",
+            "django",
+            "ruter",
+            "atb",
+            "easypark",
+            "st1",
+            "circle k",
+            "ferge",
+            "vy",
+            "blue energy as",
+            "p-hus",
+            "p hus",
+            "parkering",
+        ],
+        "overføring": [
+            "straksbetaling",
+            "vipps",
+            "overføring",
+            "til",
+            "fra",
+            "overført",
+        ],
+        "klær": [
+            "volt",
+            "dressmann",
+            "massimo",
+            "john henric",
+            "bogart",
+            "morris",
+            "eurosko",
+            "follestad",
+            "el corte ingles",
+        ],
+        "reise": ["norwegian", "sas", "flytoget"],
     }
-
 
     d = " ".join(remittance_information or []).lower()
 
@@ -56,9 +153,6 @@ def categorizeTransaction(remittance_information):
                 return category
     return "other"
 
-
-
-       
 
 def sync_account(account, transactions, balances=None):
     balances = balances or []
@@ -105,24 +199,28 @@ def sync_account(account, transactions, balances=None):
         account_id = cur.fetchone()["id"]
 
         rows = []
-        for t in transactions: #For every transaction 
-            amt = t.get("transaction_amount") or {} #get the amount
-            direction = t.get("credit_debit_indicator") # positive or negative amount
-            ore = round(float(amt.get("amount") or 0) * 100) # make it in øre *always stored in øre/cents because floats may break in math
+        for t in transactions:  # For every transaction
+            amt = t.get("transaction_amount") or {}  # get the amount
+            direction = t.get("credit_debit_indicator")  # positive or negative amount
+            ore = round(
+                float(amt.get("amount") or 0) * 100
+            )  # make it in øre *always stored in øre/cents because floats may break in math
             if direction == "DBIT":
                 ore = -ore
-            rows.append({
-                "account_id": account_id,
-                "entry_reference": t.get("entry_reference"),
-                "amount": ore,
-                "currency": amt.get("currency"),
-                "direction": direction,
-                "status": t.get("status"),
-                "booking_date": t.get("booking_date"),
-                "value_date": t.get("value_date"),
-                "description": " ".join(t.get("remittance_information") or []),
-                "category" : categorizeTransaction(t.get("remittance_information"))
-            })
+            rows.append(
+                {
+                    "account_id": account_id,
+                    "entry_reference": t.get("entry_reference"),
+                    "amount": ore,
+                    "currency": amt.get("currency"),
+                    "direction": direction,
+                    "status": t.get("status"),
+                    "booking_date": t.get("booking_date"),
+                    "value_date": t.get("value_date"),
+                    "description": " ".join(t.get("remittance_information") or []),
+                    "category": categorizeTransaction(t.get("remittance_information")),
+                }
+            )
 
         if rows:
             cur.executemany(
@@ -159,6 +257,7 @@ def recategorizeAllTransactions():
 
         return len(updates)
 
+
 def getExpenseCategoryPercentages():
     with connect() as conn, conn.cursor() as cur:
         cur.execute("""SELECT category, 
@@ -174,66 +273,75 @@ def getExpenseCategoryPercentages():
         rows = cur.fetchall()
         return rows
 
-def getTransactionsLastMonth(): #fetches all transactions within the last month
+
+def getTransactionsLastMonth():  # fetches all transactions within the last month
     with connect() as conn, conn.cursor() as cur:
-        cur.execute(""" SELECT t.id, t.amount, t.direction, t.status, t.value_date, t.booking_date,
+        cur.execute(
+            """ SELECT t.id, t.amount, t.direction, t.status, t.value_date, t.booking_date,
                         t.description, t.category,
                         a.uid AS account_uid,
                         COALESCE(a.label, a.product) AS account_name
                         FROM transactions t
                         JOIN accounts a ON a.id = t.account_id
                         WHERE t.value_date::date > CURRENT_DATE - INTERVAL '1 month'
-                        ORDER BY t.value_date DESC""")
+                        ORDER BY t.value_date DESC"""
+        )
         rows = cur.fetchall()
         return rows
 
-def getTransactionsLastYear(): #fetches all transactions within the last year
+
+def getTransactionsLastYear():  # fetches all transactions within the last year
     with connect() as conn, conn.cursor() as cur:
-        cur.execute(""" SELECT t.id, t.amount, t.direction, t.status, t.value_date, t.booking_date,
+        cur.execute(
+            """ SELECT t.id, t.amount, t.direction, t.status, t.value_date, t.booking_date,
                         t.description, t.category,
                         a.uid AS account_uid,
                         COALESCE(a.label, a.product) AS account_name
                         FROM transactions t
                         JOIN accounts a ON a.id = t.account_id
                         WHERE t.value_date::date > CURRENT_DATE - INTERVAL '1 year'
-                        ORDER BY t.value_date DESC""")
+                        ORDER BY t.value_date DESC"""
+        )
         return cur.fetchall()
-
 
 
 def getAccounts():
     with connect() as conn, conn.cursor() as cur:
-        cur.execute("SELECT *, COALESCE(label, product) AS account_name FROM accounts ORDER BY product")
+        cur.execute(
+            "SELECT *, COALESCE(label, product) AS account_name FROM accounts ORDER BY product"
+        )
         return cur.fetchall()
 
 
-def getWeeklyExpenses():
+def getMonthlyExpenses():
     with connect() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT date_trunc('week', booking_date::date)::date AS week,
+            SELECT date_trunc('month', booking_date::date)::date AS month,
             category,
             ABS(SUM(amount)) / 100.0 AS total
             FROM transactions
             WHERE amount < 0
             AND category NOT IN ('overføring', 'sparing')
             AND booking_date::date > CURRENT_DATE - INTERVAL '6 months'
-            GROUP BY week, category
-            ORDER BY week
+            GROUP BY month, category
+            ORDER BY month, category
         """)
         rows = cur.fetchall()
 
     all_categories = {r["category"] for r in rows}
 
-    by_week = {}
+    by_month = {}
     for r in rows:
-        week = r["week"].isoformat()
-        if week not in by_week:
-            by_week[week] = {"week": week, **{c: 0 for c in all_categories}}
-        by_week[week][r["category"]] = float(r["total"])
+        month = r["month"].isoformat()
+        if month not in by_month:
+            by_month[month] = {"month": month, **{c: 0 for c in all_categories}}
+        by_month[month][r["category"]] = float(r["total"])
 
-    return list(by_week.values())
+    return list(by_month.values())
+
 
 client = OpenAI(api_key=os.getenv("CHAT_GPT_API_KEY"))
+
 
 def openaiExpenseQuery(problem, transactions):
     prompt = f"""Here are the user's transactions: {transactions} 
@@ -244,8 +352,7 @@ def openaiExpenseQuery(problem, transactions):
             For each transaction list as following: [id, description, amount(in kroner, stored in øre, 1kr is 100øre), date, why this is considered correct]
             """
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role" : "user", "content": prompt}]
+        model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]
     )
 
     return {"answer": response.choices[0].message.content}
