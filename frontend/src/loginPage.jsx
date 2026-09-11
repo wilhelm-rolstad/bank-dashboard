@@ -15,11 +15,12 @@ export default function loginPage(){
 
     return(
         <>
-            <section className="w-full flex justify-center items-center h-full bg-[url('./assets/login_bg.jpg')] bg-cover bg-center ">
-                <div className="border border-gray-300 rounded-lg p-5 flex flex-col gap-2 items-center bg-white/5 shadow-md backdrop-blur-xs text-white">
-                    <h1>Welcom back Wilhelm</h1>
-                    <p>Please enter your pin</p>
-                        <input type="password" className="border rounded" onChange={(e) => handleClick(e.target.value)}></input>
+            <section className="w-full flex justify-center items-center h-full bg-[url('./assets/login_bg.jpg')] bg-cover bg-center font-jetbrains font-normal">
+                <div className="border border-gray-300 rounded-2xl p-5 flex flex-col gap-2 justify-center items-center bg-white text-black w-[40%] h-[30%] min-w-100 min-h-30">
+                    <h1 className="text-3xl">Stinn.</h1>
+                    <p >Pin-kode</p>
+                        <input type="password" className="border rounded w-30" onChange={(e) => handleClick(e.target.value)}></input>
+                    <button className="cursor-pointer border px-3 py-1 rounded-lg flex items-center hover:scale-105 transition duration-300">Demo-versjon</button>
                 </div>
             </section>
         </>

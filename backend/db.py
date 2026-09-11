@@ -9,6 +9,7 @@ import re
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+client = OpenAI(api_key=os.getenv("CHAT_GPT_API_KEY"))
 
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL not set in .env")
@@ -147,11 +148,41 @@ def categorizeTransaction(remittance_information):
 
     d = " ".join(remittance_information or []).lower()
 
+    # Steg 1: prøv regel-basert først
     for category, keywords in CATEGORIES.items():
         for k in keywords:
             if re.search(rf"\b{re.escape(k)}\b", d):
                 return category
-    return "other"
+
+    # Steg 2: ingen match — fall tilbake på LLM
+    prompt = f"""Categorize the following transaction into ONE of these categories:
+            - dagligvarer: matvarebutikker, supermarkeder, kiosker
+            - takeaway: restauranter, fast food, hjemlevering av mat
+            - abbonement: streaming-tjenester, apper, forsikringer, faste månedlige avgifter, kredittkortfaktura(efakura fra bank) skal ikke gå under abonnement, men other.
+            - trening: treningssentre, sportsutstyr, sportsklær
+            - sparing: overføringer til investerings- eller sparekontoer
+            - elektronikk: databutikker, elektronikkjeder, apper for tech
+            - sosialt: barer, puber, restauranter for utekvelder, kino, arrangementer, festivaler
+            - transport: kollektivtrafikk, taxi, drivstoff, parkering, sykkel/elsparkesykkel-utleie
+            - overføring: person-til-person-overføringer, Vipps, mellom egne kontoer
+            - klær: klesbutikker (ikke sports)
+            - reise: fly, tog til/fra flyplass, hotell, langdistansereiser
+            - other: alt som ikke passer
+
+            Transaction description: {d}
+
+            Respond with ONLY the category name, in lowercase, nothing else.
+            """
+    response = client.chat.completions.create(
+        model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]
+    )
+    print(
+        "for description ",
+        {d},
+        "i chose the category: ",
+        {response.choices[0].message.content.strip().lower()},
+    )
+    return response.choices[0].message.content.strip().lower()
 
 
 def sync_account(account, transactions, balances=None):
@@ -198,19 +229,45 @@ def sync_account(account, transactions, balances=None):
         )
         account_id = cur.fetchone()["id"]
 
+        # --- NYTT: hent eksisterende transaksjoner for denne kontoen ---
+        cur.execute(
+            "SELECT entry_reference FROM transactions WHERE account_id = %s",
+            (account_id,),
+        )
+        existing_refs = {row["entry_reference"] for row in cur.fetchall()}
+
+        # --- NYTT: cache for LLM-svar innen denne synken ---
+        category_cache = {}
+        # -----------------------------------------------------------------
+
         rows = []
-        for t in transactions:  # For every transaction
-            amt = t.get("transaction_amount") or {}  # get the amount
-            direction = t.get("credit_debit_indicator")  # positive or negative amount
-            ore = round(
-                float(amt.get("amount") or 0) * 100
-            )  # make it in øre *always stored in øre/cents because floats may break in math
+        for t in transactions:
+            entry_ref = t.get("entry_reference")
+
+            # --- NYTT: hopp over hvis den allerede finnes ---
+            if entry_ref in existing_refs:
+                continue
+            # ------------------------------------------------
+
+            amt = t.get("transaction_amount") or {}
+            direction = t.get("credit_debit_indicator")
+            ore = round(float(amt.get("amount") or 0) * 100)
             if direction == "DBIT":
                 ore = -ore
+
+            # --- NYTT: bruk cache før du kaller categorizeTransaction ---
+            desc_key = " ".join(t.get("remittance_information") or []).lower().strip()
+            if desc_key in category_cache:
+                category = category_cache[desc_key]
+            else:
+                category = categorizeTransaction(t.get("remittance_information"))
+                category_cache[desc_key] = category
+            # ------------------------------------------------------------
+
             rows.append(
                 {
                     "account_id": account_id,
-                    "entry_reference": t.get("entry_reference"),
+                    "entry_reference": entry_ref,
                     "amount": ore,
                     "currency": amt.get("currency"),
                     "direction": direction,
@@ -218,7 +275,7 @@ def sync_account(account, transactions, balances=None):
                     "booking_date": t.get("booking_date"),
                     "value_date": t.get("value_date"),
                     "description": " ".join(t.get("remittance_information") or []),
-                    "category": categorizeTransaction(t.get("remittance_information")),
+                    "category": category,  # bruker cached/nytt resultat
                 }
             )
 
@@ -340,16 +397,24 @@ def getMonthlyExpenses():
     return list(by_month.values())
 
 
-client = OpenAI(api_key=os.getenv("CHAT_GPT_API_KEY"))
-
-
 def openaiExpenseQuery(problem, transactions):
     prompt = f"""Here are the user's transactions: {transactions} 
             Question: {problem}
             Answer based on the transactions above. By id(important!); list all transactions relevant to solve the problem.
             For example problem "how much did i spend on bunnpris last month?" 
             then respond with all transactions from the last month that are from bunnpris.
-            For each transaction list as following: [id, description, amount(in kroner, stored in øre, 1kr is 100øre), date, why this is considered correct]
+            To include a transaction you must be 100% sure. If the question is a specific company the company name must be found in the description of the expense.
+            For example: how much did i spend on bunnpris last month? - then bunnpris must exists within the description.
+            If a question is more open like: "how much did i spend on nightlife activities" - then you must reason and try to find a connection to nightlife activities.
+            For example purchases at a bar or an establishment that does nightlife, or if you are unsure check if there are other nightlife activities on the same data,
+            that increases the chance of this one also being nightlife.
+            Answer must be in this exact format:
+
+            Relevant transactions: *[id, id, id, ....]
+
+            *Explanation of the above. Maximum 4 sentences.
+
+            *Total amount: *total amount
             """
     response = client.chat.completions.create(
         model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]

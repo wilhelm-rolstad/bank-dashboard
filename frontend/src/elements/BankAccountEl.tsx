@@ -50,14 +50,14 @@ export default function BankAccountEl({uid, name, cash_account_type, balance, re
                       <p className="text-sm ml-auto">ISSUER </p>
                 </div>
 
-                <div className="flex gap-2 mt-auto min-w-[40%]">
-                    <div className=" mt-auto text-white text-sm ">
-                        {ibanConverter(iban)}
+                <div className="flex gap-2 mt-auto min-w-[40%] ">
+                    <div className=" mt-auto text-white text-sm whitespace-nowrap overflow-hidden">
+                        {ibanConverter(iban)} 
                     </div>
                
                     <div className="flex flex-col ml-auto gap-0  min-w-[60%]">
                         <p className="text-md ml-auto text-white">{(balance / 100).toFixed(2)}</p>
-                        <p className="text-xs text-right text-gray-100">Booked {(reserved_balance / 100).toFixed(2)}</p>
+                        <p className="text-xs text-right text-gray-100 whitespace-nowrap">Booked {(reserved_balance / 100).toFixed(2)}</p>
                     </div>
                 </div>
             </section>
