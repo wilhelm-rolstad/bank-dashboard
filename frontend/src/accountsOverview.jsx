@@ -24,8 +24,6 @@ export default function accountsOverview() {
   const [stats, setStats] = useState(null);
   const categories = ["dagligvarer", "takeaway", "transport", "trening", "sosialt", "klær", "reise", "elektronikk", "abbonement"];
   const [monthlyExpensesInCategories, setMonthlyExpensesInCategories] = useState(null)
-  const COLORSPIE = ["#4a7c8c", "#8c5a4a", "#6b8f5a", "#8c7a4a", "#6b5a8c", "#4a8c7c", "#8c4a6b", "#5a6b8c"];
-  const COLORSLINE = ["#38bdf8", "#fb923c", "#4ade80", "#facc15", "#a78bfa", "#2dd4bf", "#f472b6", "#60a5fa", "#f87171", "#a3e635"];
   const chartData = (stats ?? [])
   .filter((s) => s.category !== "other")
   .map((s) => ({ name: s.category, value: Math.abs(Number(s.amount)) }));
@@ -66,7 +64,7 @@ useEffect(() => {
     .finally(() => {
       Promise.all([
         fetch(`${API}/getAccounts`).then((r) => (r.ok ? r.json() : null)),
-        fetch(`${API}/transactionsLastMonth`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`${API}/transactionsLastYear`).then((r) => (r.ok ? r.json() : null)), //transactionLastMonth...
         fetch(`${API}/getExpenseStats`).then((r) => (r.ok ? r.json() : null)),
         fetch(`${API}/getMonthlyExpensesPerCategory`).then((r) => (r.ok ? r.json():null))
       ])
@@ -98,14 +96,12 @@ const visible = (transactions ?? []).filter(
 );
 
   return (
-  <div className="mx-auto w-full h-full flex flex-col p-2 font-jetbrains font-normal">
+  <div className="mx-auto w-full h-full flex flex-col font-jetbrains font-normal">
 
 
     {error && <p style={{ color: "crimson" }}>{error}</p>}
 
-      <div className="flex flex-col flex-1 min-h-0 gap-2 p-2">
-        
-        
+      <div className="flex flex-col flex-1 min-h-0 gap-2 px-2">
           <h1 className="text-2xl shrink-0">Kontooversikt og transaksjoner</h1>
           
           <div className={`flex w-full flex-row gap-2 rounded-md my-5 px-2 py-2 text-sm items-center ${initializing ? "bg-gray-200 animate-pulse *:invisible" : "bg-white "} `}>
@@ -143,7 +139,7 @@ const visible = (transactions ?? []).filter(
             visible={visible}
             initializing={initializing}
           />
-          {transactions ? <AiExpenseEl transactions={transactions}/> : <p>loading...</p>}
+          {transactions ? <AiExpenseEl transactions={transactions}/> : ""}
         </div>
       </div>
   </div>

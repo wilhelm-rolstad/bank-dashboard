@@ -44,18 +44,18 @@ export default function BankAccountEl({uid, name, cash_account_type, balance, re
                       {editing ? 
                         <input placeholder="newname" onKeyDown={(e) => {if (e.key === "Enter") {setLabel(e.currentTarget.value)} }} ></input> 
                         : 
-                        <p className="text-lg " onClick={(e) => setEditing(true)}>{label? label : name}</p> 
+                        <p className="text-xs lg:text-lg " onClick={(e) => setEditing(true)}>{label? label : name}</p> 
                       }
-                      <p className="text-sm border px-2 py-1 bg-white/10 backdrop-blur-md border-white/20 rounded-3xl shadow-lg shadow-black/20">{cash_account_type}</p> 
-                      <p className="text-sm ml-auto">ISSUER </p>
+                      <p className="text-xs lg:text-sm border px-2 py-1 bg-white/10 backdrop-blur-md border-white/20 rounded-3xl shadow-lg shadow-black/20">{cash_account_type}</p> 
+                      <p className="text-xs lg:text-sm ml-auto">ISSUER </p>
                 </div>
 
-                <div className="flex gap-2 mt-auto min-w-[40%] ">
-                    <div className=" mt-auto text-white text-sm whitespace-nowrap overflow-hidden">
+                <div className="flex w-full items-center justify-between">
+                    <div className=" mt-auto text-white text-sm invisible xl:visible whitespace-nowrap w-[50%]">
                         {ibanConverter(iban)} 
                     </div>
                
-                    <div className="flex flex-col ml-auto gap-0  min-w-[60%]">
+                    <div className="flex flex-col ml-auto gap-0 w-[50%]">
                         <p className="text-md ml-auto text-white">{(balance / 100).toFixed(2)}</p>
                         <p className="text-xs text-right text-gray-100 whitespace-nowrap">Booked {(reserved_balance / 100).toFixed(2)}</p>
                     </div>

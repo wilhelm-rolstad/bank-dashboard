@@ -285,6 +285,11 @@ def getTransactionsLastMont():
     return db.getTransactionsLastMonth()
 
 
+@app.get("/transactionsLastYear")
+def getTransactionsLastYear():
+    return db.getTransactionsLastYear()
+
+
 @app.get("/getAccounts")
 def getAccounts():
     return db.getAccounts()
@@ -299,3 +304,8 @@ def getMonthlyExpenses():
 async def aiexpensequery(request: Request):
     data = await request.json()
     return db.openaiExpenseQuery(data["problem"], data["transactions"])
+
+
+@app.patch("/category")
+def changeCategory(id, newCategory):
+    return db.changeCategory(id, newCategory)

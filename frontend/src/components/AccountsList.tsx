@@ -9,7 +9,7 @@ type AccountsListProps = {
 
 export default function AccountsList({accounts, selectedAccount, setSelectedUid, initializing} : AccountsListProps){
     return(
-        <div className={`flex flex-col gap-2 w-[20%] pl-3 pr-8 py-3  overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${initializing ? " *:invisible animate-pulse bg-gray-200 rounded-lg" : ""}`}>
+        <div className={`flex flex-col gap-2 w-[25%] pl-3 pr-8 py-3  overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${initializing ? " *:invisible animate-pulse bg-gray-200 rounded-lg" : ""}`}>
             {accounts.map((account) => (
                 <BankAccountEl
                 key={account.id}

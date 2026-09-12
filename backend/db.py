@@ -421,3 +421,16 @@ def openaiExpenseQuery(problem, transactions):
     )
 
     return {"answer": response.choices[0].message.content}
+
+
+def changeCategory(id, newCategory):
+    with connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            """ 
+            UPDATE transactions 
+            SET category = %s
+            WHERE id = %s
+            """,
+            (newCategory, id),
+        )
+    return cur.rowcount > 0
