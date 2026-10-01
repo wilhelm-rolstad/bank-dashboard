@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+requests
+PyJWT[crypto]
+python-dotenv
+psycopg[binary]
+openai

@@ -1,3 +1,6 @@
+import CategoryDropDown from "./CategoryDropDown";
+import { useState } from "react";
+
 type TransactionElProps = {
     style?: React.CSSProperties,
     description : string,
@@ -6,10 +9,11 @@ type TransactionElProps = {
     value_date : string,
     account_name: string,
     category: string,
+    id: number
 }
 
 {/* ADD A WAY TO TELL IF A TRANSACTION IS NEGATIVE OR POSITIVE, - + and colors */}
-export default function TransactionEL({style, description, amount, currency, value_date, account_name, category} : TransactionElProps){
+export default function TransactionEL({style, description, amount, currency, value_date, account_name, category, id} : TransactionElProps){
     function dateFormatter(date: string){
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         let splitdate = date.split("-")
@@ -53,17 +57,38 @@ export default function TransactionEL({style, description, amount, currency, val
         overføring: "bg-indigo-100 text-indigo-800 border-indigo-200",
         other: "bg-gray-100 text-gray-600 border-gray-200",
     };  
-        
+
+    const [selectedCategory, setSelectedCategory] = useState(category);
+
+    const API = "http://localhost:8000";
+
+    async function changeCategory(newCategory: string) {
+        const params = new URLSearchParams({
+            id: String(id),
+            newCategory,
+        });
+
+        const result = await fetch(`${API}/category?${params}`, {
+            method: "PATCH",
+        });
+
+        if (!result.ok) {
+            throw new Error(`${result.status} ${await result.text()}`);
+        }
+
+        setSelectedCategory(newCategory)
+    }
+    
     return(<>
-        <section style={style} className=" animate-slide-in text-xs text-left text-black flex items-center py-1 w-full cursor-pointer hover:bg-gray-200 rounded-md transition hover:duration-100 duration-400">
-            <p className="px-3 flex-1 truncate">{remittanceInformationFormatter(description)}</p>
-            <p className="px-3 w-32 truncate">{account_name}</p>
+        <section style={style} className="animate-slide-in text-xs text-left text-black flex items-center py-1 w-full min-w-0 cursor-pointer hover:bg-gray-200 rounded-md transition hover:duration-100 duration-400">
+            <p className="px-3 flex-1 w-[30%]">{remittanceInformationFormatter(description)}</p>
+            <p className="px-3 w-[20%] truncate">{account_name}</p>
             <p className={`px-3 w-28 ml-auto text-right tabular-nums whitespace-nowrap ${Number(amount) < 0 ? "text-red-500" : "text-green-500"}`}>
                 {moneyFormatter(amount)}&nbsp;{currency}
             </p>
             <p className="px-3 w-28 text-right whitespace-nowrap">{dateFormatter(value_date)}</p>
-            <p className={`px-3 w-24 text-right truncate border rounded-xl flex justify-center ${CATEGORY_STYLES[category] ?? CATEGORY_STYLES.other}`}>{category}</p>
+            <CategoryDropDown category={selectedCategory} changeCategory={changeCategory}/>
         </section>
-        <hr className="border-t border-gray-200 w-full" />
+        <hr className="border-t border-gray-200 w-full"/>
     </>)
 }

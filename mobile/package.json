@@ -1,0 +1,41 @@
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~57.0.25",
+    "expo-build-properties": "~57.0.22",
+    "expo-glass-effect": "~57.0.4",
+    "expo-haptics": "~57.0.3",
+    "expo-status-bar": "~57.0.1",
+    "lucide-react-native": "^1.48.0",
+    "nativewind": "4.2.7",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
+    "react-native-worklets": "0.10.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "babel-preset-expo": "~57.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "private": true,
+  "allowScripts": {
+    "fsevents@2.3.3": true,
+    "unrs-resolver@1.12.2": true
+  }
+}
