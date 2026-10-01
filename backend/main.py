@@ -9,32 +9,44 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-import json
+from psycopg.types.json import Jsonb
 import db
 from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 APP_ID = os.getenv("ENABLEBANKING_APP_ID")
-KEY_PATH = Path(__file__).parent.parent / os.getenv("ENABLEBANKING_KEY_PATH").lstrip(
-    "./"
-)
+
+key_path = os.getenv("ENABLEBANKING_KEY_PATH")
+if not key_path:
+    raise RuntimeError("ENABLEBANKING_KEY_PATH is not set")
+
+KEY_PATH = Path(key_path)
+if not KEY_PATH.is_absolute():
+    KEY_PATH = (Path(__file__).parent / KEY_PATH).resolve()
+
 BASE_URL = "https://api.enablebanking.com"
 REDIRECT_URI = "https://wilhelmrolstad.no/callback"
-SESSION_FILE = Path(__file__).parent / "session.json"
 
 
 def load_session():
-    if SESSION_FILE.exists():
-        try:
-            return json.loads(SESSION_FILE.read_text())
-        except Exception:
-            return {}
-    return {}
+    with db.connect() as conn, conn.cursor() as cur:
+        cur.execute("SELECT data FROM bank_backend.session_state WHERE id = 1")
+        row = cur.fetchone()
+        return row["data"] if row else {}
 
 
 def save_session(data):
-    SESSION_FILE.write_text(json.dumps(data, indent=2))
+    with db.connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO bank_backend.session_state (id, data)
+            VALUES (1, %s)
+            ON CONFLICT (id)
+            DO UPDATE SET data = EXCLUDED.data
+            """,
+            (Jsonb(data),),
+        )
 
 
 if not APP_ID:
@@ -43,10 +55,6 @@ if not KEY_PATH.exists():
     raise RuntimeError(f"Private key not found at {KEY_PATH}")
 
 PRIVATE_KEY = KEY_PATH.read_text()
-
-# In-memory storage. Fine for dev; you'd use a real DB for production.
-SESSIONS = {}  # session_id -> session data (accounts, etc.)
-LATEST = load_session()  # simple {"session_id": ..., "accounts": [...]}
 
 app = FastAPI()
 app.add_middleware(
@@ -160,10 +168,12 @@ def callback(code: str = None, state: str = None, error: str = None):
 
     session = resp.json()
     session_id = session.get("session_id")
-    SESSIONS[session_id] = session
-    LATEST["session_id"] = session_id
-    LATEST["accounts"] = session.get("accounts", [])
-    save_session(LATEST)
+    save_session(
+        {
+            "session_id": session_id,
+            "accounts": session.get("accounts", []),
+        }
+    )
 
     account_lines = "".join(
         f"<li>{a.get('uid')} — {a.get('account_id', {}).get('iban', 'no IBAN')}</li>"
@@ -185,7 +195,7 @@ def get_transactions(account_uid: str, days: int = 90):
 
 @app.get("/accounts")
 def get_accounts():
-    accounts = LATEST.get("accounts")
+    accounts = load_session().get("accounts")
     if not accounts:
         raise HTTPException(status_code=404, detail="No session. Start auth first.")
 
@@ -209,7 +219,7 @@ def get_accounts():
 @app.get("/balances")
 def get_all_balances():
     """Fetch balances for every account in the current session."""
-    accounts = LATEST.get("accounts")
+    accounts = load_session().get("accounts")
     if not accounts:
         raise HTTPException(status_code=404, detail="No session. Start auth first.")
 
@@ -237,11 +247,12 @@ def get_all_balances():
 
 @app.post("/sync")
 def sync():
-    accounts = LATEST.get("accounts")
+    latest = load_session()
+    accounts = latest.get("accounts")
     if not accounts:
         raise HTTPException(status_code=404, detail="No session. Start auth first.")
     summary = []
-    last_sync = LATEST.get("last_sync", 0)
+    last_sync = latest.get("last_sync", 0)
     if time.time() - last_sync > 2 * 60 * 60:
         for (
             a
@@ -257,8 +268,8 @@ def sync():
 
             _, n = db.sync_account(a, txs, balances)
             summary.append({"product": a.get("product"), "fetched": n})
-        LATEST["last_sync"] = time.time()
-        save_session(LATEST)
+        latest["last_sync"] = time.time()
+        save_session(latest)
         return summary
     else:
         return []
